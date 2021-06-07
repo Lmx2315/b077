@@ -645,6 +645,7 @@ void tca6424_to_port_write (u8 number,u8 *a);
 u8 tca6424a_write (u8 adr_m,u8 adr_r,u8 *dat);
 void tca64_adr (u8 a);
 u8 tca9534_read (u8 adr_m,u8 adr_r);
+void tca6424a_from_port (u8 number,u8 *a);
 //-------------JTAG--------------
 void JTAG_SCAN (void);
 u8 SCAN_N (void);

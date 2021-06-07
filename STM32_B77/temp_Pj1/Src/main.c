@@ -1860,6 +1860,15 @@ if (strcmp(Word,"tca")==0)
      z1=tca9534_read (crc_comp,crc_input);  //
 	 x_out("code:",z1);
    } else 
+if (strcmp(Word,"tca6424a_read")==0)                     
+   {
+     Transf ("принял tca_read:\r\n");
+     crc_comp =atoi(DATA_Word);	//первое число - номер микросхемы на плате
+     tca6424a_from_port (crc_comp,Str);
+	 x_out("code[0]:",Str[0]);
+	 x_out("code[1]:",Str[1]);
+	 x_out("code[2]:",Str[2]);
+   } else 
 if (strcmp(Word,"LED_DD44")==0)                     
    {
 	   crc_comp =atoi(DATA_Word);	
@@ -2064,7 +2073,7 @@ u8 b[3]={0xff,0xff,0xff};
 		DD27_write (p>>24);
 		DD37_write (p>>32);
 		
-		tca6424_to_port_write (31,a)
+		tca6424_to_port_write (31,a);
 		
 		LED_DD44 (1);
 		LED_DD43 (0);
@@ -2092,7 +2101,7 @@ u8 b[3]={0xff,0xff,0xff};
 		RAB_NORMA_MK(1);
 		PIT_NORMA_MK(0);
 		
-		tca6424_to_port_write (31,b)
+		tca6424_to_port_write (31,b);
 		
 		FLAG_T2=1;
 		//Transf2("~0 help;\r\n");
@@ -2386,6 +2395,33 @@ void DD37_write (u8 a)
 {
 	tca9534_write (39,3,0); //записываем в конфигурационный регистр - что все порты это выходы
 	tca9534_write (39,1,a); //записываем данные в порты
+}
+
+void tca6424a_read (u8 adr_m,u8 adr_r,u8 *dat) //чтение в массив из трех байт
+{
+uint16_t DevAddress=adr_m;//адрес 
+	 u8  c[1]; 
+	 u8  a[3];
+	 uint8_t state=0;
+	 uint8_t v=0;
+	 u32 error=0;
+	
+	HAL_I2C_Init(&hi2c1);	
+
+	c[0] =adr_r;  //команда-чтение I/O Status 1 
+
+	HAL_I2C_Master_SMBA_block_recieve(&hi2c1,(DevAddress<<1),c,1,a,3,1);
+	
+	HAL_I2C_DeInit(&hi2c1);	
+	dat[0]=a[0];
+	dat[1]=a[1];
+	dat[2]=a[2];
+}
+
+void tca6424a_from_port (u8 number,u8 *a)
+{
+   tca64_adr (number);//номер это позиционное обозначение на плате 31 остальным микрухам другой адрес
+   tca6424a_read (34,0x80,a);
 }
 
 u8 tca6424a_write (u8 adr_m,u8 adr_r,u8 *dat)
