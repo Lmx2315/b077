@@ -3885,32 +3885,32 @@ Image component sizes
 
       Code (inc. data)   RO Data    RW Data    ZI Data      Debug   Object Name
 
-       210         20          0          0          0       6843   adiv5_jtagdp.o
-         0          0        876          0          0       1515   jtag_devs.o
-      1100         68          0          0          0       5707   jtag_my.o
-      1624        574         81          4        660       3779   jtag_scan.o
-       622         48          0          0         20       6030   jtagtap.o
-     11366       3262          0        264      39829     508275   main.o
-        36          8        408          0       8192        836   startup_stm32f411xe.o
-       144         24          0         12          0       3897   stm32f4xx_hal.o
-      1460         64          0          0          0       7810   stm32f4xx_hal_adc.o
-         2          0          0          0          0        981   stm32f4xx_hal_adc_ex.o
-       222         14          0          0          0      34173   stm32f4xx_hal_cortex.o
-       948         16          8          0          0       5770   stm32f4xx_hal_dma.o
-       694         68          0          0          0       4741   stm32f4xx_hal_gpio.o
-      3186         72          0          0          0      13963   stm32f4xx_hal_i2c.o
-      1332        140          0          0          0       5203   stm32f4xx_hal_msp.o
-      1244         80          0          0          0       5352   stm32f4xx_hal_rcc.o
-      1108         14          0          0          0       5986   stm32f4xx_hal_spi.o
-       368          0          0          0          0       5080   stm32f4xx_hal_tim.o
-         4          0          0          0          0       1597   stm32f4xx_hal_tim_ex.o
-      1720         26          0          0          0      11373   stm32f4xx_hal_uart.o
-       480        142          0          0          0      11858   stm32f4xx_it.o
-        84         18         24          4          0       1155   system_stm32f4xx.o
-      6460        984          0        104       4119      38335   w5200.o
+       210         20          0          0          0       6991   adiv5_jtagdp.o
+         0          0        876          0          0       1587   jtag_devs.o
+      1100         68          0          0          0       5867   jtag_my.o
+      1624        574         81          4        660       3883   jtag_scan.o
+       622         48          0          0         20       6234   jtagtap.o
+     11366       3262          0        264      39829     509659   main.o
+        36          8        408          0       8192        852   startup_stm32f411xe.o
+       144         24          0         12          0       4005   stm32f4xx_hal.o
+      1460         64          0          0          0       8030   stm32f4xx_hal_adc.o
+         2          0          0          0          0       1017   stm32f4xx_hal_adc_ex.o
+       222         14          0          0          0      34309   stm32f4xx_hal_cortex.o
+       948         16          8          0          0       5910   stm32f4xx_hal_dma.o
+       694         68          0          0          0       4873   stm32f4xx_hal_gpio.o
+      3186         72          0          0          0      14239   stm32f4xx_hal_i2c.o
+      1332        140          0          0          0       5331   stm32f4xx_hal_msp.o
+      1244         80          0          0          0       5472   stm32f4xx_hal_rcc.o
+      1108         14          0          0          0       6130   stm32f4xx_hal_spi.o
+       368          0          0          0          0       5208   stm32f4xx_hal_tim.o
+         4          0          0          0          0       1649   stm32f4xx_hal_tim_ex.o
+      1720         26          0          0          0      11681   stm32f4xx_hal_uart.o
+       480        142          0          0          0      12306   stm32f4xx_it.o
+        84         18         24          4          0       1207   system_stm32f4xx.o
+      6460        984          0        104       4119      39235   w5200.o
 
     ----------------------------------------------------------------------
-     34472       5642       1432        392      52824     690259   Object Totals
+     34472       5642       1432        392      52824     695675   Object Totals
          0          0         32          0          0          0   (incl. Generated)
         58          0          3          4          4          0   (incl. Padding)
 
@@ -3977,8 +3977,8 @@ Image component sizes
 
       Code (inc. data)   RO Data    RW Data    ZI Data      Debug   
 
-     38844       5752       1568        396      52828     667867   Grand Totals
-     38844       5752       1568         48      52828     667867   ELF Image Totals (compressed)
+     38844       5752       1568        396      52828     673283   Grand Totals
+     38844       5752       1568         48      52828     673283   ELF Image Totals (compressed)
      38844       5752       1568         48          0          0   ROM Totals
 
 ==============================================================================
