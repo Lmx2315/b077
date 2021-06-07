@@ -626,6 +626,25 @@ void req_col ();
 void FUNC_FLAG_UP (POINTER *,u32);
 u8 FLAG_DWN (POINTER *);
 void SPI_BP_WRITE (u32 ,u32 );
+void SYS_INFO (u8);
+void UART_DMA_TX  (void);
+void UART_DMA_TX2 (void);
+void REF_SFP_CONTROL (u8 a);
+u8 DS4306_read (u8 adr_m,u8 adr_r);
+
+void LED_DD44 (u8 a);
+void LED_DD43 (u8 a);
+void LED_DD33 (u8 a);
+void LED_DD38 (u8 a);
+void DD8_write (u8 a);
+void DD9_write (u8 a);
+void DD25_write (u8 a);
+void DD27_write (u8 a);
+void DD37_write (u8 a);
+void tca6424_to_port_write (u8 number,u8 *a);
+u8 tca6424a_write (u8 adr_m,u8 adr_r,u8 *dat);
+void tca64_adr (u8 a);
+u8 tca9534_read (u8 adr_m,u8 adr_r);
 //-------------JTAG--------------
 void JTAG_SCAN (void);
 u8 SCAN_N (void);

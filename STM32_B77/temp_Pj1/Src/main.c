@@ -298,16 +298,6 @@ void Initialization_wiznet(void);
 /* USER CODE BEGIN PFP */
 u8 START_BP=0;
 
-void SYS_INFO (u8);
-void UART_DMA_TX  (void);
-void UART_DMA_TX2 (void);
-void REF_SFP_CONTROL (u8 a);
-u8 DS4306_read (u8 adr_m,u8 adr_r);
-
-void LED_DD44 (u8 a);
-void LED_DD43 (u8 a);
-void LED_DD33 (u8 a);
-void LED_DD38 (u8 a);
 
 /* USER CODE END PFP */
 
@@ -1862,6 +1852,14 @@ if (strcmp(Word,"DS4306_read")==0)
      z1=DS4306_read (crc_comp,crc_input);  //
 	 x_out("code:",z1);
    } else    
+if (strcmp(Word,"tca")==0)                     
+   {
+     Transf ("принял tca_read:\r\n");
+     crc_comp =atoi(DATA_Word);	//первое число - адресс м-ы
+ 	 crc_input=atoi(DATA_Word2);//второе число адресс регистра	 
+     z1=tca9534_read (crc_comp,crc_input);  //
+	 x_out("code:",z1);
+   } else 
 if (strcmp(Word,"LED_DD44")==0)                     
    {
 	   crc_comp =atoi(DATA_Word);	
@@ -2049,11 +2047,24 @@ void UART_conrol (void)
 
 void LED (void)
 {	
+static u64 p=0xffffffffff;
+u8 a[3]={0x00,0x00,0x00};
+u8 b[3]={0xff,0xff,0xff};
+
 	if ((TIMER1<100)&&(FLAG_T1==0)) 
 	{		
 		VD3(1);
 		VD4(0);
 		VD5(0);
+		if (p!=0) p=p>>1; else p=0xffffffffff;
+		
+		DD8_write  (p);
+		DD9_write  (p>>8);
+		DD25_write (p>>16);
+		DD27_write (p>>24);
+		DD37_write (p>>32);
+		
+		tca6424_to_port_write (31,a)
 		
 		LED_DD44 (1);
 		LED_DD43 (0);
@@ -2080,6 +2091,8 @@ void LED (void)
 		
 		RAB_NORMA_MK(1);
 		PIT_NORMA_MK(0);
+		
+		tca6424_to_port_write (31,b)
 		
 		FLAG_T2=1;
 		//Transf2("~0 help;\r\n");
@@ -2305,6 +2318,136 @@ void LED_DD33 (u8 a)
 {
 	u8 dat=(a&1)<<5;
 	DS4306_write (0xb0,1,dat);
+}
+
+u8 tca9534_read (u8 adr_m,u8 adr_r)  //
+{
+	uint16_t DevAddress=adr_m;//адрес DD10 ds4520
+	 u8  c[1]; 
+	 u8  a[2];
+	 uint8_t state=0;
+	 uint8_t v=0;
+	 u32 error=0;
+	
+	HAL_I2C_Init(&hi2c1);	
+
+	c[0] =adr_r;  //команда-чтение I/O Status 1 
+
+	HAL_I2C_Master_SMBA_block_recieve(&hi2c1,(DevAddress<<1),c,1,a,1,1);
+	
+	HAL_I2C_DeInit(&hi2c1);	
+	v=a[0]&0x01;	
+	return v;
+}
+
+u8 tca9534_write (u8 adr_m,u8 adr_r,u8 data)
+{
+	uint16_t DevAddress=adr_m;//адрес 
+	 u8  a[4];
+	 uint8_t state=0;
+	 
+	 HAL_I2C_Init(&hi2c1);
+	
+	a[0] =   adr_r;  //Configuration Port 0
+	a[1] =   data;
+	
+	state=HAL_I2C_Master_Transmit(&hi2c1,(DevAddress<<1),a,2,1000);//конфигурируем порты мк как выходы
+	
+	HAL_I2C_DeInit(&hi2c1);
+
+	return state;
+}
+
+void DD8_write (u8 a)
+{
+	tca9534_write (32,3,0); //записываем в конфигурационный регистр - что все порты это выходы
+	tca9534_write (32,1,a); //записываем данные в порты
+}
+
+void DD9_write (u8 a)
+{
+	tca9534_write (33,3,0); //записываем в конфигурационный регистр - что все порты это выходы
+	tca9534_write (33,1,a); //записываем данные в порты
+}
+
+void DD25_write (u8 a)
+{
+	tca9534_write (37,3,0); //записываем в конфигурационный регистр - что все порты это выходы
+	tca9534_write (37,1,a); //записываем данные в порты
+}
+
+void DD27_write (u8 a)
+{
+	tca9534_write (36,3,0); //записываем в конфигурационный регистр - что все порты это выходы
+	tca9534_write (36,1,a); //записываем данные в порты
+}
+
+void DD37_write (u8 a)
+{
+	tca9534_write (39,3,0); //записываем в конфигурационный регистр - что все порты это выходы
+	tca9534_write (39,1,a); //записываем данные в порты
+}
+
+u8 tca6424a_write (u8 adr_m,u8 adr_r,u8 *dat)
+{
+	uint16_t DevAddress=adr_m;//адрес 
+	 u8  a[4];
+	 uint8_t state=0;
+	 
+	 HAL_I2C_Init(&hi2c1);
+	
+	a[0] =   adr_r;  //Configuration Port 0
+	a[1] =   dat[0];
+	a[2] =   dat[1];
+	a[3] =   dat[2];
+	
+	state=HAL_I2C_Master_Transmit(&hi2c1,(DevAddress<<1),a,4,1000);//конфигурируем порты мк как выходы
+	
+	HAL_I2C_DeInit(&hi2c1);
+
+	return state;
+}
+
+void tca6424_to_port_write (u8 number,u8 *a)
+{
+	u8 b[3]={0x00,0x00,0x00};
+	tca64_adr (number);//номер это позиционное обозначение на плате 31 остальным микрухам другой адрес
+	tca6424a_write (34,0x8c,b);//конфигурируем порты на выходы
+	tca6424a_write (34,0x84,a);
+}
+
+
+void tca64_adr (u8 a)
+{
+	if (a==31) 
+	{
+		ADDR_DD36   (0);
+		ADDR_DD37   (1);
+		ADDR_FAULT  (1);
+		ADDR_DISABLE(1);
+	} else
+	if (a==35) 
+	{
+		ADDR_DD36   (1);
+		ADDR_DD37   (1);
+		ADDR_FAULT  (1);
+		ADDR_DISABLE(0);
+	}else 
+	if (a==32) 
+	{
+		ADDR_DD36   (1);
+		ADDR_DD37   (1);
+		ADDR_FAULT  (0);
+		ADDR_DISABLE(1);
+	}else 
+	if (a==34) 
+	{
+		ADDR_DD36   (1);
+		ADDR_DD37   (0);
+		ADDR_FAULT  (1);
+		ADDR_DISABLE(1);
+	} 
+		
 }
 
 void SYS_INFO (u8 a)
