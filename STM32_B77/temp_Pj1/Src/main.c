@@ -255,6 +255,8 @@ u32 TIMER_TIMEOUT=0;        //таймер таймаута ожидания ответов
 u8 SCH_TST1=0;//счётчик числа попыток
 u8 SCH_TST2=0;
 u8 SCH_TST3=0;
+
+SFP_str SFP[20];
 //-----------------------------------------------------------------------------
 //                           описание структур управления и квитанций
 /* USER CODE END PV */
@@ -896,7 +898,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
     /*Configure GPIO pin :  */
-  GPIO_InitStruct.Pin  = GPIO_PIN_9|GPIO_PIN_12;
+  GPIO_InitStruct.Pin  = GPIO_PIN_12;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
@@ -1864,7 +1866,7 @@ if (strcmp(Word,"tca6424a_read")==0)
    {
      Transf ("принял tca_read:\r\n");
      crc_comp =atoi(DATA_Word);	//первое число - номер микросхемы на плате
-     tca6424a_from_port (crc_comp,Str);
+     tca6424a_from_dd32 (Str);
 	 x_out("code[0]:",Str[0]);
 	 x_out("code[1]:",Str[1]);
 	 x_out("code[2]:",Str[2]);
@@ -1889,6 +1891,11 @@ if (strcmp(Word,"menu")==0)
    {
      Transf ("принял menu\r\n"    );
      Menu1(0);
+   } else
+ if (strcmp(Word,"sfp3")==0) //
+   {
+    u_out ("принял sfp3:",0); 
+	 SFP3_data_rcv ();
    } else
  if (strcmp(Word,"Show_worktime")==0) //
    {
@@ -2073,7 +2080,7 @@ u8 b[3]={0xff,0xff,0xff};
 		DD27_write (p>>24);
 		DD37_write (p>>32);
 		
-		tca6424_to_port_write (31,a);
+	//	tca6424_to_port_write (31,a);
 		
 		LED_DD44 (1);
 		LED_DD43 (0);
@@ -2101,7 +2108,7 @@ u8 b[3]={0xff,0xff,0xff};
 		RAB_NORMA_MK(1);
 		PIT_NORMA_MK(0);
 		
-		tca6424_to_port_write (31,b);
+	//	tca6424_to_port_write (31,b);
 		
 		FLAG_T2=1;
 		//Transf2("~0 help;\r\n");
@@ -2243,7 +2250,7 @@ u8 TCA_WR (u32 z)
 }
 
 
-u8 DS4520_read (void)  //проверяем состояние входа расширителя - 15 нога расширителя DD10 (8порт)  - сигнал POWERGOOD от конденсаторов
+u8 DS4520_read (void)  //
 {
 	uint16_t DevAddress=0x53;//адрес DD10 ds4520
 	 u8  c[1]; 
@@ -2263,9 +2270,79 @@ if (!state)
 	}
 	
 	HAL_I2C_DeInit(&hi2c1);	
-	v=a[0]&0x01;	
+	v=a[0];	
 	return v;
 }
+
+//----------------------------------------
+u8 SFP_byte_read (u8 dev,u8 adr)  //считываем один байт из SFP
+{
+	uint16_t DevAddress=dev;//адрес DD10 ds4520
+	 u8  c[1]; 
+	 u8  a[2];
+	 uint8_t state=0;
+	 uint8_t v=0;
+	 u32 error=0;
+	
+	HAL_I2C_Init(&hi2c1);	
+
+	c[0] =adr;  //команда-чтение I/O Status 1 
+
+	HAL_I2C_Master_SMBA_block_recieve(&hi2c1,(DevAddress<<0),c,1,a,1,1);
+	
+	HAL_I2C_DeInit(&hi2c1);	
+	v=a[0];	
+	return v;
+}
+
+void SFP_read (u8 dev,u8 adr,u16 n,u8 *m)//считываем из sfp n байт с адреса adr
+{
+	int i=0;
+	for (i=0;i<n;i++)
+	{
+		m[i]=SFP_byte_read (dev,adr+i);
+	}
+}
+
+void SFP3_data_rcv ()
+{
+	u8 a[96];
+	u8 b[111];
+	int i=0;
+	
+	DD43_SWITCH (3);
+	SFP_read (0xa0,0,96 ,a);
+	SFP_read (0xa2,0,111,b);
+	DD43_SWITCH (0);
+	
+	for (i=20;i<36;i++) SFP[0].Vendor_name[i-20]     =0;
+	for (i=40;i<48;i++) SFP[0].Vendor_part[i-40]     =0;
+	for (i=68;i<84;i++) SFP[0].Vendoe_serial[i-68]   =0;
+	for (i=84;i<92;i++) SFP[0].Vendor_date_code[i-84]=0;
+	
+	SFP[0].SFP_physical_device =a[0];
+	SFP[0].LC_optical_connector=a[2];
+	for (i=20;i<36;i++) SFP[0].Vendor_name[i-20]=a[i];
+	for (i=40;i<48;i++) SFP[0].Vendor_part[i-40]=a[i];
+	SFP[0].Laser_wave=(a[60]<<8)+a[61];
+	for (i=68;i<84;i++) SFP[0].Vendoe_serial[i-68]=a[i];
+	for (i=84;i<92;i++) SFP[0].Vendor_date_code[i-84]=a[i];
+	
+	SFP[0].Temp  =(b[ 96]<<8)+b[ 95];
+	SFP[0].Vcc   =(b[ 98]<<8)+b[ 99];
+	SFP[0].Ptx   =(b[102]<<8)+b[103];
+	SFP[0].Prx   =(b[104]<<8)+b[105];
+	SFP[0].State = b[110];
+	
+	Transf("\r\n--------------------\r\n");
+	Transf("Vendor name     :");Transf(SFP[0].Vendor_name);Transf("\r\n");
+	Transf("Vendor_part     :");Transf(SFP[0].Vendor_part);Transf("\r\n");
+	Transf("Vendoe_serial   :");Transf(SFP[0].Vendoe_serial);Transf("\r\n");
+	Transf("Vendor_date_code:");Transf(SFP[0].Vendor_date_code);Transf("\r\n");
+	
+}
+
+//----------------------------------------
 
 u8 DS4306_read (u8 adr_m,u8 adr_r)  //
 {
@@ -2304,6 +2381,40 @@ u8 DS4306_write (u8 adr_m,u8 adr_r,u8 data)
 
 	return state;
 }
+//----------------------------------------
+
+//----------------------------------------
+//   коммутаторы i2c на модули sfp код: 1,2,3,4 - соответствующий канал , 0 - выключение ключей
+
+void DD38_SWITCH (u8 a)
+{
+	u8 dat=(1)<<(8-a);
+	if (a==0) dat=0x00;
+	DS4306_write (0xae,3,dat);
+}
+
+void DD33_SWITCH (u8 a)
+{
+	u8 dat=(1)<<(8-a);
+	if (a==0) dat=0x00;
+	DS4306_write (0xb0,3,dat);
+}
+
+void DD43_SWITCH (u8 a)
+{
+	u8 dat=(1)<<(8-a);
+	if (a==0) dat=0x00;
+	DS4306_write (0xa8,3,dat);
+}
+
+void DD44_SWITCH (u8 a)
+{
+	u8 dat=(1)<<(8-a);
+	if (a==0) dat=0x00;
+	DS4306_write (0xaa,3,dat);
+}
+
+//--------------------------------------
 
 void LED_DD44 (u8 a)
 {
@@ -2329,6 +2440,8 @@ void LED_DD33 (u8 a)
 	DS4306_write (0xb0,1,dat);
 }
 
+//-------------------------------------
+
 u8 tca9534_read (u8 adr_m,u8 adr_r)  //
 {
 	uint16_t DevAddress=adr_m;//адрес DD10 ds4520
@@ -2345,7 +2458,7 @@ u8 tca9534_read (u8 adr_m,u8 adr_r)  //
 	HAL_I2C_Master_SMBA_block_recieve(&hi2c1,(DevAddress<<1),c,1,a,1,1);
 	
 	HAL_I2C_DeInit(&hi2c1);	
-	v=a[0]&0x01;	
+	v=a[0];	
 	return v;
 }
 
@@ -2397,7 +2510,7 @@ void DD37_write (u8 a)
 	tca9534_write (39,1,a); //записываем данные в порты
 }
 
-void tca6424a_read (u8 adr_m,u8 adr_r,u8 *dat) //чтение в массив из трех байт
+void tca6424a_read (u8 adr_m,u8 adr_r,u8 *p) //чтение в массив из трех байт
 {
 uint16_t DevAddress=adr_m;//адрес 
 	 u8  c[1]; 
@@ -2413,15 +2526,49 @@ uint16_t DevAddress=adr_m;//адрес
 	HAL_I2C_Master_SMBA_block_recieve(&hi2c1,(DevAddress<<1),c,1,a,3,1);
 	
 	HAL_I2C_DeInit(&hi2c1);	
-	dat[0]=a[0];
-	dat[1]=a[1];
-	dat[2]=a[2];
+    p[0]=a[0];
+	p[1]=a[1];
+	p[2]=a[2];
 }
 
-void tca6424a_from_port (u8 number,u8 *a)
+void tca6424a_from_dd32 (u8 *p)
 {
-   tca64_adr (number);//номер это позиционное обозначение на плате 31 остальным микрухам другой адрес
-   tca6424a_read (34,0x80,a);
+   tca64_adr (32);//номер это позиционное обозначение на плате 32 остальным микрухам другой адрес
+   Delay(10);
+   tca6424a_read  (34,0x80,p);
+}
+
+void DD32_config ()
+{
+   u8 b[3]={0xff,0xff,0xff};
+   tca64_adr (32);//номер это позиционное обозначение на плате 32 остальным микрухам другой адрес
+   Delay(10);
+   tca6424a_write (34,0x8c,b);//конфигурируем порты на входы
+}
+
+void DD35_config ()
+{
+   u8 b[3]={0x00,0x00,0x00};
+   tca64_adr (35);//номер это позиционное обозначение на плате 35 остальным микрухам другой адрес
+   Delay(10);
+   tca6424a_write (34,0x8c,b);//конфигурируем порты на выходы
+}
+
+
+void DD34_config ()
+{
+   u8 b[3]={0x00,0x00,0x00};
+   tca64_adr (34);//номер это позиционное обозначение на плате 34 остальным микрухам другой адрес
+   Delay(10);
+   tca6424a_write (34,0x8c,b);//конфигурируем порты на выходы
+}
+
+void DD31_config ()
+{
+   u8 b[3]={0x00,0x00,0x00};
+   tca64_adr (31);//номер это позиционное обозначение на плате 31 остальным микрухам другой адрес
+   Delay(10);
+   tca6424a_write (34,0x8c,b);//конфигурируем порты на выходы
 }
 
 u8 tca6424a_write (u8 adr_m,u8 adr_r,u8 *dat)
@@ -2437,7 +2584,7 @@ u8 tca6424a_write (u8 adr_m,u8 adr_r,u8 *dat)
 	a[2] =   dat[1];
 	a[3] =   dat[2];
 	
-	state=HAL_I2C_Master_Transmit(&hi2c1,(DevAddress<<1),a,4,1000);//конфигурируем порты мк как выходы
+	state=HAL_I2C_Master_Transmit(&hi2c1,(DevAddress<<1),a,4,10);//конфигурируем порты
 	
 	HAL_I2C_DeInit(&hi2c1);
 
@@ -2812,6 +2959,97 @@ void ALARM_SYS_TEMP (void)
 	u8 var=0;
 }
 
+
+	
+void CONTROL_SFP_FAULT (u8 debug)
+{
+	    u8 a[3];
+volatile  static u32 tmp_z=0xffffffff;
+        u32 tmp0=0;
+		u8 bit0;
+		u8 bit1;
+		int i=0;
+
+	if (SFP_TX_FAULT==0) //если есть прерывание от расширителя i2c
+	{
+	  tca6424a_from_dd32 (a);
+	  tmp0=(a[2]<<16)+(a[1]<<8)+(a[0]<<0);
+	  
+	//  x_out("tmp0  :",tmp0);
+	//  x_out("tmp_z :",tmp_z);
+	  
+	  B077.SFP2_TX_FAULT  = a[0]&1;
+	  B077.SFP1_TX_FAULT  =(a[0]>>1)&1;
+	  B077.SFP18_TX_FAULT =(a[0]>>2)&1;
+	  B077.SFP17_TX_FAULT =(a[0]>>3)&1;
+	  B077.SFP16_TX_FAULT =(a[0]>>4)&1;
+	  B077.SFP15_TX_FAULT =(a[0]>>5)&1;
+	  B077.SFP14_TX_FAULT =(a[0]>>6)&1;
+	  B077.SFP13_TX_FAULT =(a[0]>>7)&1;
+	   
+	  B077.SFP12_TX_FAULT =(a[1]>>0)&1;
+	  B077.SFP11_TX_FAULT =(a[1]>>1)&1;
+	  B077.SFP10_TX_FAULT =(a[1]>>2)&1;
+	  B077.SFP9_TX_FAULT  =(a[1]>>3)&1;
+	  B077.SFP8_TX_FAULT  =(a[1]>>4)&1;
+	  B077.SFP7_TX_FAULT  =(a[1]>>5)&1;
+	  B077.SFP6_TX_FAULT  =(a[1]>>6)&1;
+	  B077.SFP5_TX_FAULT  =(a[1]>>7)&1;
+	  
+	  B077.SFP4_TX_FAULT  =(a[2]>>0)&1;
+	  B077.SFP3_TX_FAULT  =(a[2]>>1)&1;
+	  B077.SFP20_TX_FAULT =(a[2]>>3)&1;
+	  B077.SFP20_LOS      =(a[2]>>4)&1;
+	  B077.SFP19_TX_FAULT =(a[2]>>5)&1;
+	  B077.ONET1_RX       =(a[2]>>6)&1;
+	  B077.ONET2_RX       =(a[2]>>7)&1;
+	  
+	  if ((debug==1)&&(tmp0!=tmp_z))
+	{
+		for (i=0;i<24;i++)
+		{
+			bit0=(tmp0 >>i)&1;
+			bit1=(tmp_z>>i)&1;
+			if (bit0!=bit1)
+			{
+				switch (i)
+				{
+					case  0:x_out("SFP2_TX_FAULT :",B077.SFP2_TX_FAULT);break;
+					case  1:x_out("SFP1_TX_FAULT :",B077.SFP1_TX_FAULT);break;
+					case  2:x_out("SFP18_TX_FAULT:",B077.SFP18_TX_FAULT);break;
+					case  3:x_out("SFP17_TX_FAULT:",B077.SFP17_TX_FAULT);break;
+					case  4:x_out("SFP16_TX_FAULT:",B077.SFP16_TX_FAULT);break;
+					case  5:x_out("SFP15_TX_FAULT:",B077.SFP15_TX_FAULT);break;
+					case  6:x_out("SFP14_TX_FAULT:",B077.SFP14_TX_FAULT);break;
+					case  7:x_out("SFP13_TX_FAULT:",B077.SFP13_TX_FAULT);break;
+					case  8:x_out("SFP12_TX_FAULT:",B077.SFP12_TX_FAULT);break;
+					case  9:x_out("SFP11_TX_FAULT:",B077.SFP11_TX_FAULT);break;
+					case 10:x_out("SFP10_TX_FAULT:",B077.SFP10_TX_FAULT);break;
+					case 11:x_out("SFP9_TX_FAULT :",B077.SFP9_TX_FAULT);break;
+					case 12:x_out("SFP8_TX_FAULT :",B077.SFP8_TX_FAULT);break;
+					case 13:x_out("SFP7_TX_FAULT :",B077.SFP7_TX_FAULT);break;
+					case 14:x_out("SFP6_TX_FAULT :",B077.SFP6_TX_FAULT);break;
+					case 15:x_out("SFP5_TX_FAULT :",B077.SFP5_TX_FAULT);break;
+					case 16:x_out("SFP4_TX_FAULT :",B077.SFP4_TX_FAULT);break;
+					case 17:x_out("SFP3_TX_FAULT :",B077.SFP3_TX_FAULT);break;
+					case 19:x_out("SFP20_TX_FAULT:",B077.SFP20_TX_FAULT);break;
+					case 20:x_out("SFP20_LOS     :",B077.SFP20_LOS);break;
+					case 21:x_out("SFP19_TX_FAULT:",B077.SFP19_TX_FAULT);break;
+					case 22:x_out("ONET1_RX_RSSI :",B077.ONET1_RX);break;
+					case 23:x_out("ONET2_RX_RSSI :",B077.ONET2_RX);break;
+				}
+			}
+		}	  
+		tmp_z=tmp0;
+	}	  
+	}
+}
+
+void LED_SFP_STATE ()
+{
+	
+}
+
 void UART_CNTR (UART_HandleTypeDef *huart)
 {
 	if (huart->gState != HAL_UART_STATE_BUSY_TX)
@@ -3038,8 +3276,8 @@ HAL_ADC_Start_DMA  (&hadc1,(uint32_t*)&adcBuffer,5); // Start ADC in DMA
   B077.WORK_TIME=TIME_OF_WORK; //время наработки блока в десятках минут;
 
 
-   ADDR_DD36(0); 
-   ADDR_DD37(0); 
+   ADDR_DD36(1); 
+   ADDR_DD37(1); 
      EN_SINH(0); 
        RES_4(0); 
        RES_1(0); 
@@ -3055,12 +3293,17 @@ HAL_ADC_Start_DMA  (&hadc1,(uint32_t*)&adcBuffer,5); // Start ADC in DMA
     DE_RS485(0); 
    NRE_RS485(0); 
  IN_SEL_DD29(0); 
-  ADDR_FAULT(0); 
-ADDR_DISABLE(0); 
+  ADDR_FAULT(1); 
+ADDR_DISABLE(1); 
    LED_TH_MK(0); 
  LED_TH_R_MK(0); 
 RAB_NORMA_MK(0); 
 PIT_NORMA_MK(0); 
+
+ DD32_config ();
+ DD35_config ();
+ DD34_config ();
+ DD31_config ();
 
 
   while (1)
@@ -3090,18 +3333,19 @@ PIT_NORMA_MK(0);
 	}; 
 
     DISPATCHER        (TIMER_TIMEOUT);//выполняет отложенные задачи
-	ALARM_SYS_TEMP    ();//сравниваем измеренную температуру с пороговым значением  
-    CONTROL_SYS       ();//проверяем параметры системы: температуру , ток потребление и т.д.
-	CONTROL_POK 	  ();
+	ALARM_SYS_TEMP    ( );//сравниваем измеренную температуру с пороговым значением  
+    CONTROL_SYS       ( );//проверяем параметры системы: температуру , ток потребление и т.д.
+	CONTROL_POK 	  ( );
+    CONTROL_SFP_FAULT (1);
 	REF_SFP_CONTROL   (0);
-	LED_CONTROL 	  ();
-	CONTROL_T1HZ_MK   ();
+	LED_CONTROL 	  ( );
+	CONTROL_T1HZ_MK   ( );
 	CMD_search        (&ID_SERV1,&SERV1);
-	SEND_UDP_MSG 	  ();
-    UART_DMA_TX  	  ();
-	UART_DMA_TX2  	  ();
+	SEND_UDP_MSG 	  ( );
+    UART_DMA_TX  	  ( );
+	UART_DMA_TX2  	  ( );
 	UART_CNTR         (&huart2);//тут управляем драйвером 485
-	FTIME_OF_WORK     ();       //тут следим за временем наработки
+	FTIME_OF_WORK     ( );       //тут следим за временем наработки
 
   }
 

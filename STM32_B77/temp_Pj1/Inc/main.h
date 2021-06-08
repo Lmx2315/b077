@@ -531,6 +531,22 @@ typedef struct  //эта структура описывает указател�
   u32 timer;
 } POINTER;
 
+typedef struct  //эта структура описывает модуль SFP
+{ 
+  u8  SFP_physical_device;
+  u8  LC_optical_connector;
+  u8  Vendor_name[16];
+  u8  Vendor_part[12];
+  u8  Vendor_revision[4];
+  u16 Laser_wave;
+  u8  Vendoe_serial[14];
+  u8  Vendor_date_code[6];
+  u16 Temp;
+  u16 Vcc;
+  u16 Ptx;   //измерение излучаемой мощности
+  u16 Prx;   //измерение принимаемой мощности
+  u8  State; //регистр состояния
+} SFP_str;
 
 #define PNT_BUF 32 //количество указателей для массива отложенного выполнения команд
 //---------------------------
@@ -545,6 +561,27 @@ typedef struct SYS_STATE_BOARD   // объявляю структуру
   u8  I2cPRESENT4; //показывает что произошло событие
   u8  I2cPRESENT5; //показывает что произошло событие
   u8  I2cPRESENT6; //показывает что произошло событие
+  u8  SFP2_TX_FAULT;
+  u8  SFP3_TX_FAULT;
+  u8  SFP1_TX_FAULT;
+  u8  SFP18_TX_FAULT;
+  u8  SFP17_TX_FAULT;
+  u8  SFP16_TX_FAULT;
+  u8  SFP15_TX_FAULT;
+  u8  SFP14_TX_FAULT;
+  u8  SFP13_TX_FAULT;
+  u8  SFP12_TX_FAULT;
+  u8  SFP11_TX_FAULT;
+  u8  SFP10_TX_FAULT;
+  u8  SFP9_TX_FAULT;
+  u8  SFP8_TX_FAULT;
+  u8  SFP7_TX_FAULT;
+  u8  SFP6_TX_FAULT;
+  u8  SFP5_TX_FAULT;
+  u8  SFP4_TX_FAULT;
+  u8  SFP20_TX_FAULT;
+  u8  SFP19_TX_FAULT;
+  u8  SFP20_LOS;
   u8  LED_TH_MK;
   u8  LED_TH_R_MK;
   u8  SFP_REF2;     //показывает наличие сигнала по SFP2
@@ -645,7 +682,17 @@ void tca6424_to_port_write (u8 number,u8 *a);
 u8 tca6424a_write (u8 adr_m,u8 adr_r,u8 *dat);
 void tca64_adr (u8 a);
 u8 tca9534_read (u8 adr_m,u8 adr_r);
-void tca6424a_from_port (u8 number,u8 *a);
+void tca6424a_read (u8 adr_m,u8 adr_r,u8 *p);
+void tca6424a_from_dd32 (u8 *p);
+void DD32_config ();
+void DD35_config ();
+void DD34_config ();
+void DD31_config ();
+void SFP3_data_rcv ();
+void DD43_SWITCH (u8 a);
+void DD33_SWITCH (u8 a);
+void DD38_SWITCH (u8 a);
+void DD44_SWITCH (u8 a);
 //-------------JTAG--------------
 void JTAG_SCAN (void);
 u8 SCAN_N (void);
